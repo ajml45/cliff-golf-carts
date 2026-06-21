@@ -28,6 +28,9 @@ export function validateFleet(data) {
 
   if (!Array.isArray(data.vehicles)) throw new DataError("vehicles must be an array");
   if (!Array.isArray(data.outages)) throw new DataError("outages must be an array");
+  if (data.troubleshooting !== undefined && !Array.isArray(data.troubleshooting)) {
+    throw new DataError("troubleshooting must be an array");
+  }
 
   const ids = new Set();
   for (const v of data.vehicles) {
@@ -63,6 +66,23 @@ export function validateFleet(data) {
     if (o.end !== null && o.end !== undefined) validDate(o.end, `${where} end`);
     req(o, "cause", where);
     if (o.photo) req(o.photo, "file", `${where} photo`); // optional repair photo
+  }
+
+  for (const g of data.troubleshooting || []) {
+    const where = `troubleshooting guide "${g.id || "?"}"`;
+    req(g, "id", where);
+    const vid = req(g, "vehicleId", where);
+    if (!ids.has(vid)) throw new DataError(`${where}: no vehicle with id "${vid}"`);
+    req(g, "title", where);
+    if (!Array.isArray(g.steps) || g.steps.length === 0) {
+      throw new DataError(`${where}: needs a non-empty "steps" array`);
+    }
+    for (const s of g.steps) {
+      req(s, "label", `${where} step`);
+      const sWhere = `${where} step "${s.label}"`;
+      req(req(s, "meter", sWhere), "test", `${sWhere} meter`);
+      req(req(s, "noMeter", sWhere), "test", `${sWhere} noMeter`);
+    }
   }
   return data;
 }

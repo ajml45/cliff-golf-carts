@@ -83,6 +83,29 @@ function vehicleById(data, id) {
   return data.vehicles.find((v) => v.id === id);
 }
 
+function guidesForVehicle(data, id) {
+  return (data.troubleshooting || []).filter((g) => g.vehicleId === id);
+}
+
+// Map a wire-color label (e.g. "Orange + green", "to starter-generator") to a CSS
+// modifier so the diagram and step chips paint the right swatch. Keyword-based so the
+// data file can phrase the label however reads best.
+function wireClass(name) {
+  const n = String(name || "").toLowerCase();
+  if (n.includes("orange") && n.includes("green")) return "wire--orange-green";
+  if (n.includes("orange")) return "wire--orange";
+  if (n.includes("blue")) return "wire--blue";
+  if (n.includes("red")) return "wire--red";
+  if (n.includes("black") && n.includes("white")) return "wire--black-white";
+  if (n.includes("white") || n.includes("starter")) return "wire--white";
+  if (n.includes("black")) return "wire--black";
+  return "wire--default";
+}
+
+function wireChip(name) {
+  return el("span", { class: `wire-chip ${wireClass(name)}` }, name);
+}
+
 function pictureFor(photo, className) {
   // <picture> requests NAME.webp with NAME.jpg fallback. 3:2 box + object-fit:cover in CSS.
   const fig = el("figure", { class: className || "media" });
@@ -268,6 +291,18 @@ export function renderVehicle(data, id, root) {
   );
   if (v.blurb) root.append(el("p", { class: "blurb" }, v.blurb));
 
+  // troubleshooting guides for this vehicle (e.g. the B.U.G.'s no-start walkthrough)
+  for (const g of guidesForVehicle(data, v.id)) {
+    root.append(
+      el("a", { class: "guide-link", href: `guide.html?vehicle=${v.id}&id=${g.id}` },
+        el("span", { class: "guide-link__icon" }, "🔧"),
+        el("span", { class: "guide-link__text" },
+          el("span", { class: "guide-link__title" }, g.title),
+          g.subtitle ? el("span", { class: "guide-link__sub" }, g.subtitle) : null),
+        el("span", { class: "guide-link__arrow" }, "→"))
+    );
+  }
+
   // known hazards / operator callout
   if (v.knownHazards && v.knownHazards.length) {
     root.append(
@@ -343,4 +378,210 @@ export function renderVehicle(data, id, root) {
     sec.append(ul);
   }
   root.append(sec);
+}
+
+// ================= TROUBLESHOOTING GUIDE =================
+
+// One safety line -> a distinct warning callout (icon + colored border), never plain text.
+function safetyCallout(text) {
+  return el("aside", { class: "callout callout--warn" },
+    el("span", { class: "callout__icon", "aria-hidden": "true" }, "⚠️"),
+    el("p", { class: "callout__body" }, text));
+}
+
+// The top-to-bottom flow diagram + the reference chain are BOTH built from this same
+// ordered node list, so editing/reordering steps in the data file moves both in lockstep.
+function chainNodes(guide) {
+  const nodes = guide.steps.map((s) => ({ label: s.label, wireOut: s.wireOut }));
+  if (guide.outcome) nodes.push({ label: guide.outcome.label, wireOut: null, end: true });
+  return nodes;
+}
+
+function flowDiagram(guide) {
+  const flow = el("div", { class: "flow", role: "img", "aria-label":
+    "Crank trigger chain: " + chainNodes(guide).map((n) => n.label).join(" then ") });
+  const nodes = chainNodes(guide);
+  nodes.forEach((n, i) => {
+    flow.append(el("div", { class: `flow__node${n.end ? " flow__node--end" : ""}` }, n.label));
+    if (i < nodes.length - 1) {
+      flow.append(
+        el("div", { class: "flow__link" },
+          el("span", { class: "flow__arrow", "aria-hidden": "true" }, "▼"),
+          n.wireOut ? wireChip(n.wireOut) : null)
+      );
+    }
+  });
+  return flow;
+}
+
+function testBlock(heading, t) {
+  const block = el("div", { class: "testblock" },
+    el("div", { class: "testblock__h" }, heading),
+    el("p", { class: "testblock__test" }, t.test));
+  if (t.good) block.append(el("p", { class: "reading reading--good" },
+    el("span", { class: "reading__k" }, "✓ "), t.good));
+  if (t.bad) block.append(el("p", { class: "reading reading--bad" },
+    el("span", { class: "reading__k" }, "✕ "), t.bad));
+  return block;
+}
+
+function stepItem(step) {
+  const det = el("details", { class: "step" });
+  det.append(
+    el("summary", { class: "step__sum" },
+      wireChip(step.wireOut),
+      el("span", { class: "step__title" }, step.title || step.label))
+  );
+  const body = el("div", { class: "step__body" });
+  if (step.intro) body.append(el("p", { class: "step__intro" }, step.intro));
+  body.append(testBlock("Meter / test light", step.meter));
+  body.append(testBlock("No meter", step.noMeter));
+  if (step.first) {
+    body.append(el("p", { class: "step__first" },
+      el("strong", {}, "First, though: "), step.first));
+  }
+  if (step.note) {
+    body.append(el("p", { class: "step__note" }, step.note));
+  }
+  if (step.part) {
+    const p = step.part;
+    const part = el("div", { class: "part" },
+      el("div", { class: "part__name" }, p.name,
+        p.oem ? el("span", { class: "part__oem" }, `OEM #${p.oem}`) : null));
+    if (p.crossRefs && p.crossRefs.length) {
+      part.append(el("div", { class: "part__refs" }, `Cross-refs: ${p.crossRefs.join(", ")}`));
+    }
+    if (p.note) part.append(el("p", { class: "part__note" }, p.note));
+    body.append(part);
+  }
+  det.append(body);
+  return det;
+}
+
+export function renderGuide(data, vehicleId, guideId, root) {
+  const guide = (data.troubleshooting || []).find(
+    (g) => g.id === guideId && (vehicleId == null || g.vehicleId === vehicleId));
+  if (!guide) {
+    root.replaceChildren(el("p", { class: "muted" }, `No guide "${guideId}".`,
+      el("br"), el("a", { href: "index.html" }, "← Back to the fleet")));
+    document.title = "Unknown guide — Fleet status";
+    return;
+  }
+  const v = vehicleById(data, guide.vehicleId);
+  document.title = `${guide.title} — ${v ? v.name : "Fleet status"}`;
+  root.replaceChildren();
+
+  root.append(el("p", { class: "back" },
+    el("a", { href: `vehicle.html?id=${guide.vehicleId}` },
+      `← Back to ${v ? v.name : "the vehicle"}`)));
+
+  // title
+  root.append(
+    el("header", { class: "guide-head" },
+      el("h1", {}, guide.title),
+      guide.subtitle ? el("p", { class: "guide-head__sub muted" }, guide.subtitle) : null)
+  );
+  if (guide.intro) root.append(el("p", { class: "blurb" }, guide.intro));
+
+  // safety — each line its own distinct callout
+  if (guide.safety && guide.safety.length) {
+    const safety = el("section", { class: "guide-safety" },
+      el("h2", {}, "Safety — don't skip"));
+    for (const line of guide.safety) safety.append(safetyCallout(line));
+    root.append(safety);
+  }
+
+  // flow diagram (Key → F/R → GCOR → Solenoid → Cranks), from the same ordered data
+  root.append(
+    el("section", {}, el("h2", {}, "The crank trigger chain"), flowDiagram(guide)));
+
+  // triage / split test
+  if (guide.triage) {
+    const t = guide.triage;
+    const card = el("section", { class: "triage" },
+      el("div", { class: "triage__title" }, t.title));
+    if (t.body) card.append(el("p", { class: "triage__body" }, t.body));
+    if (t.outcomes && t.outcomes.length) {
+      const ul = el("ul", { class: "triage__list" });
+      for (const o of t.outcomes) {
+        ul.append(el("li", { class: "triage__row" },
+          el("span", { class: "triage__result" }, o.result),
+          el("span", { class: "triage__meaning" }, o.meaning)));
+      }
+      card.append(ul);
+    }
+    if (t.note) card.append(el("p", { class: "triage__note muted" }, t.note));
+    root.append(card);
+  }
+
+  // trigger-circuit walk — collapsible steps, each with meter + no-meter tests
+  const walk = el("section", {}, el("h2", {}, "Walk the trigger circuit"));
+  for (const step of guide.steps) walk.append(stepItem(step));
+  root.append(walk);
+
+  // no-meter jumper ladder
+  if (guide.noMeterLadder) {
+    const nm = guide.noMeterLadder;
+    const sec = el("section", {}, el("h2", {}, nm.title));
+    const ol = el("ol", { class: "guide-ol" });
+    for (const item of nm.items || []) ol.append(el("li", {}, item));
+    sec.append(ol);
+    root.append(sec);
+  }
+
+  // fuse / short section
+  if (guide.fuse) {
+    const f = guide.fuse;
+    const sec = el("section", {}, el("h2", {}, f.title));
+    if (f.intro) sec.append(el("p", {}, f.intro));
+    const ul = el("ul", { class: "guide-ul" });
+    for (const item of f.items || []) ul.append(el("li", {}, item));
+    sec.append(ul);
+    if (f.safety) sec.append(safetyCallout(f.safety));
+    root.append(sec);
+  }
+
+  // reference: chain (text), wire legend, weak points
+  const ref = el("section", {}, el("h2", {}, "Reference"));
+  // ordered chain, same source as the diagram
+  ref.append(el("h3", { class: "ref-h" }, "The trigger circuit, in order"));
+  const chain = el("ol", { class: "chain" });
+  for (const n of chainNodes(guide)) {
+    chain.append(el("li", { class: "chain__node" }, n.label,
+      n.wireOut ? el("span", { class: "chain__wire muted" }, ` (${n.wireOut})`) : null));
+  }
+  ref.append(chain);
+  // wire legend
+  if (guide.wireLegend && guide.wireLegend.length) {
+    ref.append(el("h3", { class: "ref-h" }, "Wire-color legend"));
+    const leg = el("ul", { class: "legend" });
+    for (const w of guide.wireLegend) {
+      leg.append(el("li", { class: "legend__row" },
+        el("span", { class: `legend__swatch ${wireClass(w.color)}` }),
+        el("span", { class: "legend__color" }, w.color),
+        el("span", { class: "legend__meaning muted" }, w.meaning)));
+    }
+    ref.append(leg);
+  }
+  // salt-air weak points
+  if (guide.weakPoints && guide.weakPoints.length) {
+    ref.append(el("h3", { class: "ref-h" }, "Known weak points (salt air)"));
+    const ol = el("ol", { class: "guide-ol" });
+    for (const wp of guide.weakPoints) ol.append(el("li", {}, wp));
+    ref.append(ol);
+  }
+  root.append(ref);
+
+  // resolution / outcome note
+  if (guide.resolution) {
+    const r = guide.resolution;
+    const card = el("section", { class: "resolution" },
+      el("div", { class: "resolution__h" },
+        el("span", { class: "resolution__check", "aria-hidden": "true" }, "✓"),
+        `Confirmed on this cart — ${r.date}`));
+    const ul = el("ul", { class: "resolution__list" });
+    for (const line of r.lines || []) ul.append(el("li", {}, line));
+    card.append(ul);
+    root.append(card);
+  }
 }
