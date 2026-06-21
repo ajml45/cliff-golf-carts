@@ -1,0 +1,9 @@
+{
+  // Static-assets-only Worker for the Cliff Golf Carts status page.
+  // No server code — Cloudflare just serves the files in this repo.
+  "name": "cliff-golf-carts",
+  "compatibility_date": "2025-06-20",
+  "assets": {
+    "directory": "."
+  }
+}

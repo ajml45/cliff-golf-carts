@@ -1,0 +1,6 @@
+# Files that should NOT be published to the live site (dev/build artifacts).
+wrangler.jsonc
+.assetsignore
+.gitignore
+README.md
+scripts/
