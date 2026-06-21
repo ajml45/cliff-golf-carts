@@ -58,6 +58,46 @@ a:active { opacity: 0.7; }
 .muted { color: var(--muted); }
 .loading { color: var(--muted); padding: 2rem 0; }
 
+/* ---------- masthead / site title ---------- */
+.masthead { padding-top: 1.2rem; padding-bottom: 0.2rem; }
+.masthead__title {
+  font-size: clamp(1.5rem, 6vw, 2rem);
+  margin: 0;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+}
+.masthead__title::after {
+  content: "";
+  display: block;
+  width: 3rem; height: 4px; margin-top: 0.5rem;
+  background: var(--accent); border-radius: 2px;
+}
+.masthead__tag { margin: 0.45rem 0 0; color: var(--muted); font-size: 0.95rem; }
+.masthead__home {
+  display: inline-block;
+  font-weight: 800;
+  font-size: 1.05rem;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+.masthead__home:hover { color: var(--link); text-decoration: none; }
+
+/* ---------- sound button ---------- */
+.soundbtn {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  margin: 0.7rem 0 0;
+  padding: 0.6rem 1rem;
+  font: inherit; font-weight: 700;
+  color: #fff; background: var(--down);
+  border: none; border-radius: 999px;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  -webkit-tap-highlight-color: transparent;
+}
+.soundbtn:hover { filter: brightness(1.05); }
+.soundbtn:active { transform: translateY(1px); }
+.media--playable { cursor: pointer; }
+
 /* ---------- banner ---------- */
 .banner {
   border-radius: var(--radius);

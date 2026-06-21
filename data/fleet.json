@@ -45,6 +45,7 @@
       "home": "My parents' place (the former Appletree Inn)",
       "quirks": [],
       "blurb": "A 2003 Club Car DS that has quietly outlasted the inn it's named for. Steadier than the B.U.G., though that is a famously low bar.",
+      "sound": { "file": "falcon-junk.wav", "label": "What a piece of junk!" },
       "photos": [
         {
           "file": "falcon-hero",

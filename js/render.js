@@ -129,7 +129,7 @@ export function renderHome(data, root) {
       el("div", { class: "banner__count" }, `${avail.up}`,
         el("span", { class: "banner__of" }, ` / ${avail.total}`)),
       el("div", { class: "banner__label" }, "carts operational right now"),
-      el("h1", { class: "banner__head" }, copy.head),
+      el("p", { class: "banner__head" }, copy.head),
       el("p", { class: "banner__sub" }, copy.sub),
     )
   );
@@ -239,13 +239,24 @@ export function renderVehicle(data, id, root) {
   const uptime = M.uptimePct(v.id, data.outages, windowStart, now, offset);
   const downNow = M.isDownNow(v.id, data.outages, windowStart, now, offset);
 
-  document.title = `${v.name} — Fleet status`;
+  document.title = `${v.name} — 2026 Cliff Golf Carts`;
   root.replaceChildren();
 
   root.append(el("p", { class: "back" }, el("a", { href: "index.html" }, "← Back to the fleet")));
 
-  // hero
-  root.append(pictureFor(v.photos[0], "media media--hero"));
+  // hero — tappable to play the vehicle's sound, if it has one
+  const hero = pictureFor(v.photos[0], "media media--hero");
+  root.append(hero);
+  if (v.sound) {
+    const audio = new Audio(`audio/${v.sound.file}`);
+    const play = () => { audio.currentTime = 0; audio.play().catch(() => {}); };
+    hero.classList.add("media--playable");
+    hero.addEventListener("click", play);
+    const btn = el("button", { class: "soundbtn", type: "button" },
+      `🔊 ${v.sound.label || "Play sound"}`);
+    btn.addEventListener("click", play);
+    root.append(btn);
+  }
 
   // title + status
   root.append(
