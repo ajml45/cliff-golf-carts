@@ -1,0 +1,122 @@
+{
+  "season": {
+    "startMonthDay": "05-01",
+    "timezone": "America/New_York",
+    "etOffset": "-04:00"
+  },
+  "vehicles": [
+    {
+      "id": "bug",
+      "name": "Notorious B.U.G.",
+      "type": "cart",
+      "year": 2014,
+      "make": "Club Car",
+      "model": "Precedent",
+      "powertrain": "Gas — Kawasaki FE350, carbureted",
+      "seats": 4,
+      "color": "Green",
+      "home": "The boathouse",
+      "operator": { "name": "Henry", "age": 4, "note": "Drives recklessly." },
+      "knownHazards": ["Primary operator is 4 years old."],
+      "quirks": ["Lobster + bluefish door decals.", "Sun-faded roof."],
+      "blurb": "A 2014 Club Car Precedent that looks far more dependable than it is. Beloved, temperamental, and piloted by a four-year-old with no regard for his own safety or the boathouse railings.",
+      "photos": [
+        {
+          "file": "bug-hero",
+          "alt": "Green four-seat Club Car golf cart parked beside a tidal cove at sunset, lobster and fish decals on the side",
+          "caption": "Golden hour at the boathouse, looking far more dependable than it is."
+        }
+      ],
+      "maintenance": [
+        { "task": "Oil change", "intervalDays": 180, "lastDone": "2026-04-15" },
+        { "task": "Carburetor clean", "intervalDays": 365, "lastDone": "2025-09-01" }
+      ]
+    },
+    {
+      "id": "falcon",
+      "name": "The Appletree Falcon",
+      "type": "cart",
+      "year": 2003,
+      "make": "Club Car",
+      "model": "DS",
+      "powertrain": "Gas",
+      "seats": 4,
+      "color": "Green",
+      "home": "My parents' place (the former Appletree Inn)",
+      "quirks": [],
+      "blurb": "A 2003 Club Car DS that has quietly outlasted the inn it's named for. Steadier than the B.U.G., though that is a famously low bar.",
+      "photos": [
+        {
+          "file": "falcon-hero",
+          "alt": "TBD",
+          "caption": "TBD"
+        }
+      ],
+      "maintenance": [
+        { "task": "Oil change", "intervalDays": 180, "lastDone": "2026-04-20" }
+      ]
+    },
+    {
+      "id": "red-dragon",
+      "name": "The Red Dragon",
+      "type": "motorcycle",
+      "year": 1991,
+      "make": "Honda",
+      "model": "CT70",
+      "powertrain": "Gas",
+      "seats": 1,
+      "color": "Red",
+      "home": "The estate",
+      "odometer": 2000,
+      "quirks": ["Starts on the first kick. Every time."],
+      "blurb": "A 1991 Honda CT70 with roughly 2,000 miles on it that starts on the first kick, every single time. It does not break down. It exists, in part, to make the carts feel bad about themselves. The benchmark.",
+      "photos": [
+        {
+          "file": "red-dragon-hero",
+          "alt": "TBD",
+          "caption": "TBD"
+        }
+      ],
+      "maintenance": [
+        { "task": "Valve check", "intervalMiles": 1000, "lastDone": "2025-07-01" }
+      ]
+    }
+  ],
+  "outages": [
+    {
+      "vehicleId": "bug",
+      "start": "2026-05-01",
+      "end": "2026-06-11",
+      "cause": "Starter solenoid",
+      "photo": {
+        "file": "bug-solenoid",
+        "alt": "A hand holds the removed starter solenoid above the B.U.G.'s open, dusty engine bay; yellow rubber boots stand on the grass nearby",
+        "caption": "The culprit, held aloft like a trophy. Six weeks of downtime in one greasy little cylinder."
+      }
+    },
+    {
+      "vehicleId": "bug",
+      "start": "2026-06-13",
+      "end": "2026-06-19",
+      "cause": "Blown 10A fuse"
+    },
+    {
+      "vehicleId": "bug",
+      "start": "2026-06-20",
+      "end": "2026-06-20",
+      "cause": "Forward/reverse (F/R) switch",
+      "attributedTo": "Henry",
+      "photo": {
+        "file": "bug-frswitch",
+        "alt": "The green B.U.G. golf cart parked on a waterfront lawn at dusk, beside a calm cove with Adirondack chairs on a dock and the Maine shoreline beyond",
+        "caption": "Operational again after the F/R switch swap — pictured pretending it never refused to reverse."
+      }
+    },
+    {
+      "vehicleId": "falcon",
+      "start": "2026-06-03",
+      "end": "2026-06-10",
+      "cause": "Flat tire"
+    }
+  ]
+}

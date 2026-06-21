@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cliff Island Fleet Status</title>
+  <meta name="description" content="Live operational status of the McLaughlin estate fleet: two golf carts and one alarmingly reliable motorcycle." />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <main id="app" class="wrap">
+    <p class="loading">Checking on the carts…</p>
+  </main>
+
+  <footer class="site-foot">
+    <p>Cliff Island, Maine · status derived live from one stubbornly hand-edited data file ·
+       times in America/New_York</p>
+  </footer>
+
+  <script type="module">
+    import { loadFleet, showDataError } from "./js/data.js";
+    import { renderHome } from "./js/render.js";
+    const app = document.getElementById("app");
+    try {
+      const data = await loadFleet();
+      renderHome(data, app);
+    } catch (err) {
+      app.replaceChildren();
+      showDataError(err);
+    }
+  </script>
+</body>
+</html>

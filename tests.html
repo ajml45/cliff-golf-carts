@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fleet metrics — self tests</title>
+  <style>
+    body { font: 16px/1.5 system-ui, sans-serif; max-width: 760px; margin: 2rem auto; padding: 0 1rem; }
+    .pass { color: #137333; }
+    .fail { color: #b00020; font-weight: 700; }
+    li { margin: .2rem 0; }
+    h1 { font-size: 1.3rem; }
+    code { background: #f2f2f2; padding: 0 .25rem; border-radius: 3px; }
+  </style>
+</head>
+<body>
+  <h1>Fleet metrics — self tests</h1>
+  <p id="summary">Running…</p>
+  <ul id="results"></ul>
+
+  <script type="module">
+    import * as M from "./js/metrics.js";
+
+    const offset = "-04:00";
+    const results = [];
+    const approx = (a, b, eps = 1e-6) => Math.abs(a - b) < eps;
+
+    function check(name, cond, got) {
+      results.push({ name, pass: !!cond, got });
+    }
+
+    // ----- Fixtures (mirror the real seed data, with a FIXED "now" for determinism) -----
+    const now = M.etInstant("2026-06-21", offset);
+    const windowStart = M.seasonStart(now, "05-01", offset);
+
+    const vehicles = [
+      { id: "bug", type: "cart" },
+      { id: "falcon", type: "cart" },
+      { id: "red-dragon", type: "motorcycle" },
+    ];
+    const outages = [
+      { vehicleId: "bug", start: "2026-05-01", end: "2026-06-11", cause: "Starter solenoid" },
+      { vehicleId: "bug", start: "2026-06-13", end: "2026-06-13", cause: "Blown 10A fuse" },
+      { vehicleId: "falcon", start: "2026-06-03", end: "2026-06-10", cause: "Flat tire" },
+    ];
+
+    const WINDOW_DAYS = 51; // 2026-05-01 -> 2026-06-21
+
+    // ----- season window -----
+    check("season window is 51 days", approx((now - windowStart) / M.DAY_MS, WINDOW_DAYS));
+
+    // ----- inclusive-end semantics -----
+    // bug solenoid outage: down through 06-11, operational again 06-12
+    check("bug down on 06-11", M.isDownNow("bug", outages, windowStart, M.etInstant("2026-06-11", offset) + M.DAY_MS/2, offset));
+    check("bug UP on 06-12", !M.isDownNow("bug", outages, windowStart, M.etInstant("2026-06-12", offset) + M.DAY_MS/2, offset));
+    // single-day outage 06-13
+    check("bug down on 06-13 (single day)", M.isDownNow("bug", outages, windowStart, M.etInstant("2026-06-13", offset) + M.DAY_MS/2, offset));
+    check("bug UP on 06-14", !M.isDownNow("bug", outages, windowStart, M.etInstant("2026-06-14", offset) + M.DAY_MS/2, offset));
+
+    // ----- uptime % -----
+    check("bug uptime = 8/51", approx(M.uptimePct("bug", outages, windowStart, now, offset), (8/51)*100, 1e-4));
+    check("falcon uptime = 43/51", approx(M.uptimePct("falcon", outages, windowStart, now, offset), (43/51)*100, 1e-4));
+    check("red-dragon uptime = 100%", approx(M.uptimePct("red-dragon", outages, windowStart, now, offset), 100));
+
+    // ----- carts available now -----
+    const avail = M.cartsAvailableNow(vehicles, outages, windowStart, now, offset);
+    check("2 of 2 carts available now", avail.up === 2 && avail.total === 2);
+
+    // ----- cart strength shares (days at 2 / 1 / 0) -----
+    const shares = M.cartStrengthShares(vehicles, outages, windowStart, now, offset);
+    check("8 days at full strength (level 2)", approx(shares[2].days, 8, 1e-6));
+    check("35 days at 1 cart", approx(shares[1].days, 35, 1e-6));
+    check("8 days at 0 carts", approx(shares[0].days, 8, 1e-6));
+    check("shares sum to window", approx(shares[0].days + shares[1].days + shares[2].days, WINDOW_DAYS, 1e-6));
+
+    // ----- full-strength live streak -----
+    check("full-strength streak = 7 days", approx(M.fullStrengthStreakDays(vehicles, outages, windowStart, now, offset), 7, 1e-6));
+
+    // ----- leaderboard -----
+    const lb = M.leaderboard(vehicles, outages, windowStart, now, offset);
+    check("leaderboard topped by red-dragon", lb[0].id === "red-dragon");
+    check("leaderboard order: dragon > falcon > bug", lb[0].id === "red-dragon" && lb[1].id === "falcon" && lb[2].id === "bug");
+    check("red-dragon flagged benchmark", lb[0].isBenchmark === true);
+
+    // ----- longest outage -----
+    const longest = M.longestOutage(vehicles, outages, windowStart, now, offset);
+    check("longest outage = bug, 42 days", longest.vehicleId === "bug" && approx(longest.days, 42, 1e-6));
+
+    // ----- Henry's attributed downtime (none attributed -> 0%, gracefully) -----
+    const henry = M.attributedDowntimeShare("Henry", vehicles, outages, windowStart, now, offset);
+    check("Henry's share = 0%", approx(henry.pct, 0));
+    check("Henry: there IS downtime (denominator > 0)", henry.hasDowntime === true);
+    check("total cart downtime = 51 days", approx(henry.totalDownDays, 51, 1e-6));
+
+    // attributed case: flag the fuse outage to Henry -> 1 of 51 cart-down-days
+    const attrOutages = outages.map((o) => o.cause === "Blown 10A fuse" ? { ...o, attributedTo: "Henry" } : o);
+    const henry2 = M.attributedDowntimeShare("Henry", vehicles, attrOutages, windowStart, now, offset);
+    check("Henry's share = 1/51 when fuse attributed", approx(henry2.pct, (1/51)*100, 1e-4));
+
+    // ----- open outage (end: null) extends to now -----
+    const openOutages = [{ vehicleId: "bug", start: "2026-06-18", end: null, cause: "Still dead" }];
+    check("open outage: bug down now", M.isDownNow("bug", openOutages, windowStart, now, offset));
+    const availOpen = M.cartsAvailableNow(vehicles, openOutages, windowStart, now, offset);
+    check("open outage: 1 of 2 carts", availOpen.up === 1);
+
+    // ----- edge cases: empty data / zero division -----
+    check("empty outages: 100% uptime", approx(M.uptimePct("bug", [], windowStart, now, offset), 100));
+    check("zero-length window: uptime 100, no crash", approx(M.uptimePct("bug", outages, now, now, offset), 100));
+    const emptyShare = M.attributedDowntimeShare("Henry", vehicles, [], windowStart, now, offset);
+    check("no downtime: share 0%, hasDowntime false", emptyShare.pct === 0 && emptyShare.hasDowntime === false);
+
+    // ----- render -----
+    const ul = document.getElementById("results");
+    let passed = 0;
+    for (const r of results) {
+      const li = document.createElement("li");
+      li.className = r.pass ? "pass" : "fail";
+      li.textContent = `${r.pass ? "PASS" : "FAIL"} — ${r.name}` + (r.pass ? "" : `  (got: ${r.got})`);
+      ul.appendChild(li);
+      if (r.pass) passed++;
+    }
+    const sum = document.getElementById("summary");
+    sum.textContent = `${passed} / ${results.length} passed`;
+    sum.className = passed === results.length ? "pass" : "fail";
+  </script>
+</body>
+</html>

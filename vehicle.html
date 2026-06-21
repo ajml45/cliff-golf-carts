@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Vehicle — Fleet status</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <main id="app" class="wrap">
+    <p class="loading">Loading vehicle…</p>
+  </main>
+
+  <footer class="site-foot">
+    <p>Cliff Island, Maine · <a href="index.html">back to the fleet</a></p>
+  </footer>
+
+  <script type="module">
+    import { loadFleet, showDataError } from "./js/data.js";
+    import { renderVehicle } from "./js/render.js";
+    const app = document.getElementById("app");
+    const id = new URLSearchParams(location.search).get("id");
+    try {
+      const data = await loadFleet();
+      renderVehicle(data, id, app);
+    } catch (err) {
+      app.replaceChildren();
+      showDataError(err);
+    }
+  </script>
+</body>
+</html>
