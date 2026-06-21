@@ -119,5 +119,108 @@
       "end": "2026-06-10",
       "cause": "Flat tire"
     }
+  ],
+  "troubleshooting": [
+    {
+      "id": "no-start",
+      "vehicleId": "bug",
+      "title": "No-Start Troubleshooting",
+      "subtitle": "2014 Club Car Precedent · gas · Kawasaki FE350 · 12V key-start, starter-generator + solenoid",
+      "intro": "Two jobs happen when you turn the key and press the pedal: a high-current path (battery → solenoid → starter-generator) that spins the engine, and a low-current trigger circuit that tells the solenoid when to connect it. This guide chases the trigger circuit.",
+      "safety": [
+        "It will move. Several tests run with the cart in gear. Chock the wheels front and back, set the brake, and stay out of its path.",
+        "Bridging arcs. Touching a screwdriver or jumper across battery-level posts throws sparks and can spot-weld. Brief taps only, eye protection, remove rings and watches.",
+        "Never upsize or bypass the fuse. If the 10A fuse keeps blowing, you have a short — find it. A 15A fuse, or a wire where the fuse goes, is how a salt-corroded harness becomes a fire.",
+        "Hot exhaust. The muffler is brutal right after running. Let it cool before reaching near it."
+      ],
+      "triage": {
+        "title": "Step 1 — Split the problem (the big-post test)",
+        "body": "In neutral, brake set, wheels chocked, bridge the two large solenoid posts with a screwdriver.",
+        "outcomes": [
+          { "result": "It cranks (and runs if you feed gas)", "meaning": "Battery, cables, starter-generator, engine, and main grounds are all good. Your fault is in the trigger circuit — walk the steps below." },
+          { "result": "It does nothing", "meaning": "The problem is on the high-current side: dead/low battery, a bad main cable or ground, the starter-generator, or the solenoid's main contacts. Chase those instead." }
+        ],
+        "note": "On the B.U.G. it cranks — so the rest of this guide is the trigger circuit."
+      },
+      "steps": [
+        {
+          "label": "Key switch", "wireOut": "Blue",
+          "title": "Key switch (blue output wire)",
+          "meter": { "test": "Probe the blue wire where it leaves the switch.", "good": "~12V with the key ON.", "bad": "0V — dead/corroded key switch, or no feed reaching it (check the hot side; it should read ~12V in either key position)." },
+          "noMeter": { "test": "Jumper the switch's hot feed terminal to the blue output terminal (forces it ON).", "good": "If dead things downstream now come alive, the key switch was your open. Keep a real 10A fuse in, do it briefly, and remove the jumper after — the key is also your shutoff." },
+          "first": "Unplug the red/blue/green connector behind the switch and check the pins for green/white crust. Salt corrosion here mimics a dead switch perfectly. Clean, grease, reseat."
+        },
+        {
+          "label": "Forward/Reverse switch", "wireOut": "Orange",
+          "title": "Forward/Reverse switch (the in-gear interlock)",
+          "intro": "A 3-terminal micro switch on the shifter; it must close (cart in F or R) for the circuit to continue. This was the failed part on the B.U.G.",
+          "meter": { "test": "Probe its output with the shifter in F.", "good": "~12V in gear, 0V in neutral (that's the lockout working).", "bad": "Stuck at 0V even in gear — corroded/dead F/R switch." },
+          "noMeter": { "test": "Bridge the switch's terminals (or drop in a known-good spare and hot-wire it).", "good": "If it now cranks in gear, the F/R switch is bad." },
+          "part": { "name": "Club Car 3-terminal forward/reverse micro switch", "oem": "1014807", "crossRefs": ["1014805", "1014240", "4240", "4240A", "832719"], "note": "The 2-prong cousin is 1014808. Get the 3-prong so all original wires land and any second function (reverse buzzer) still works. Cheap — buy a multi-pack and keep spares." }
+        },
+        {
+          "label": "Accelerator (GCOR)", "wireOut": "Orange + green",
+          "title": "Accelerator GCOR switch (at the gas pedal)",
+          "intro": "The start switch is built into the pedal assembly up front, with a 6-pin sealed Delphi connector: orange/green = start (N.O.), black/white = kill (N.C.).",
+          "meter": { "test": "Check ~12V on the feed side, and continuity across the orange/green contact when you press the pedal (or trip it by hand).", "good": "Continuity on press.", "bad": "Voltage but no continuity on press = dead switch or the linkage isn't tripping it." },
+          "noMeter": { "test": "At the harness plug, bridge orange → green (fakes the pedal pressed), key ON, in F/R, wheels chocked, pedal untouched.", "good": "Cranks → the GCOR switch is bad. Nothing → the fault is upstream. Bridge only orange-to-green; pull the jumper the instant it fires." },
+          "first": "Unplug the Delphi connector, inspect both halves for corrosion, tug each wire to catch a backed-out pin, clean, dielectric grease, reseat until it locks."
+        },
+        {
+          "label": "Solenoid", "wireOut": "to starter-generator",
+          "title": "Solenoid (coil + ground)",
+          "intro": "If 12V reaches the solenoid's small trigger post but it still won't crank, the solenoid or its ground is the issue.",
+          "meter": { "test": "Coil reads a few ohms across the two small posts; its ground terminal hits chassis under ~1Ω.", "good": "A few ohms across the coil; ground under ~1Ω.", "bad": "Open coil or high-resistance ground." },
+          "noMeter": { "test": "In neutral/chocked, jump 12V across the two small posts (battery+ to one, ground to the other).", "good": "Clicks AND cranks = solenoid good. Click but no crank = bad contacts. No click = dead coil — replace the solenoid." },
+          "note": "Polarity: if the solenoid has an internal diode across the coil, the small wires are polarity-sensitive — reversed, the diode shorts and blows the fuse. Ohm the coil one way, flip the leads: same reading = no diode; very different = diode present, match factory colors (blue and orange on their original posts)."
+        }
+      ],
+      "outcome": { "label": "Cranks", "note": "All line up (key ON, in F or R, pedal pressed) → solenoid coil energizes, solenoid snaps closed, battery power hits the starter-generator, and it cranks." },
+      "noMeterLadder": {
+        "title": "Find the dead link without a meter (the jumper ladder)",
+        "items": [
+          "Jump 12V straight to the solenoid's small orange (trigger) post. Cranks → everything from the solenoid down is fine; the open is upstream. No crank → it's the solenoid/coil/ground.",
+          "Working back up, repeat the bridge tests at the GCOR and the F/R switch. The first point where bridging makes it crank tells you the bad component is just upstream of there."
+        ]
+      },
+      "fuse": {
+        "title": "If the 10A fuse keeps blowing",
+        "intro": "A fuse that blows repeatedly is a short to ground, not a tired switch — and a blown fuse kills the whole trigger circuit, so it masks every step above. Clear the short first.",
+        "items": [
+          "Clue from timing: blows the instant the key is ON = short on the always-hot side. Blows only when you press to start = short in the start branch. Random / on bumps = a chafed wire grounding out with vibration (the classic salt-air failure).",
+          "With a test light: clip it across the empty fuse slot. It glows while the short is live. Wiggle and disconnect branches one at a time until it goes dark — that's your shorted branch.",
+          "No tools: branch isolation. Fresh 10A fuse, disconnect one branch (e.g. the solenoid's small trigger wire), key ON. If the fuse now survives, the short is in that branch; if it still pops, it's upstream. Repeat until isolated.",
+          "Then: find the worn spot — run your fingers along the harness for bare copper, especially where wires cross metal edges or brackets near recent work. Repair and insulate."
+        ],
+        "safety": "Again: never run a bigger fuse or a wire in the fuse slot to get around this. That's the fire."
+      },
+      "wireLegend": [
+        { "color": "Blue", "meaning": "feed from the key switch" },
+        { "color": "Orange", "meaning": "from the pedal / F&R (GCOR) switches" },
+        { "color": "Orange + green", "meaning": "the GCOR start contacts (normally-open, close when you press the pedal)" },
+        { "color": "Black + white", "meaning": "the GCOR kill contacts (normally-closed; ignore for a no-crank)" },
+        { "color": "Red", "meaning": "battery positive, on a large solenoid post" },
+        { "color": "White", "meaning": "the other large solenoid post, out to the starter-generator" }
+      ],
+      "weakPoints": [
+        "Forward/Reverse micro switch (OEM 1014807) — confirmed failure here.",
+        "Corroded grounds — solenoid coil ground and the engine-to-frame strap. Clean to bare metal.",
+        "GCOR pedal connector — sealed Delphi plug at the pedal; corrosion or a backed-out pin.",
+        "Chafed control wiring — an intermittent short that blows the 10A fuse.",
+        "Key switch / its connector — internal corrosion or crusty pins behind it.",
+        "Solenoid — coil, contacts, or (if equipped) a polarity-sensitive diode."
+      ],
+      "resolution": {
+        "date": "June 2026",
+        "lines": [
+          "Big-post bridge test cranked — battery, cables, starter-generator, engine all good.",
+          "Replaced the starter solenoid and a 10A fuse; did not fix it.",
+          "Found and cleaned the GCOR pedal connector; did not fix it.",
+          "The 10A fuse was blowing intermittently (a separate corroded-harness short).",
+          "Root cause: a dead Forward/Reverse micro switch, confirmed by hot-wiring a known-good spare.",
+          "Fix: replace with OEM #1014807 (3-prong). Keep spares on the shelf."
+        ]
+      }
+    }
   ]
 }

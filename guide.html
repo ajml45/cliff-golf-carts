@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Troubleshooting — 2026 Cliff Golf Carts</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="masthead wrap">
+    <a class="masthead__home" href="index.html">2026 Cliff Golf Carts</a>
+  </header>
+  <main id="app" class="wrap">
+    <p class="loading">Loading guide…</p>
+  </main>
+
+  <footer class="site-foot">
+    <p>Cliff Island, Maine · <a href="index.html">back to the fleet</a></p>
+  </footer>
+
+  <script type="module">
+    import { loadFleet, showDataError } from "./js/data.js";
+    import { renderGuide } from "./js/render.js";
+    const app = document.getElementById("app");
+    const params = new URLSearchParams(location.search);
+    const vehicle = params.get("vehicle");
+    const id = params.get("id");
+    try {
+      const data = await loadFleet();
+      renderGuide(data, vehicle, id, app);
+    } catch (err) {
+      app.replaceChildren();
+      showDataError(err);
+    }
+  </script>
+</body>
+</html>
